@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caneca Inteligente 3D</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: .5;
+      }
+    }
+
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 min-h-screen p-6">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-white mb-2 flex items-center justify-center gap-3">
+        <svg class="text-green-400" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2">
+          <path d="M21 8L12 3L3 8M21 8L12 13M21 8V16L12 21M3 8L12 13M3 8V16L12 21M12 13V21" />
+        </svg>
+        Caneca Inteligente 3D
+      </h1>
+      <p class="text-blue-200">Sistema de Clasificación Automática de Residuos con Vista 360°</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Vista 3D -->
+      <div class="lg:col-span-2 bg-slate-800/50 backdrop-blur rounded-2xl p-6 border border-blue-500/30">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              class="text-blue-400">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            Vista 3D Interactiva - Arrastra para rotar 360°
+          </h2>
+          <div class="flex gap-2">
+            <button onclick="resetRotation()"
+              class="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/40 rounded-full border border-blue-400 transition-all">
+              🔄
+            </button>
+            <div class="px-3 py-1 bg-blue-500/20 rounded-full border border-blue-400">
+              <span class="text-blue-300 text-sm">● ONLINE</span>
+            </div>
+          </div>
+        </div>
+
+        <canvas id="binCanvas" width="600" height="500"
+          class="w-full bg-gradient-to-b from-slate-900 to-slate-800 rounded-xl cursor-grab active:cursor-grabbing">
+        </canvas>
+
+        <div id="rotationInfo" class="mt-2 text-center text-sm text-gray-400">
+          Rotación: 0° | 🔒 Tapa Cerrada
+        </div>
+
+        <!-- Pantalla Digital -->
+        <div class="mt-6 bg-slate-900 rounded-xl p-6 border border-blue-500/50">
+          <div class="text-center">
+            <h3 class="text-lg font-semibold text-blue-300 mb-4">
+              📱 Pantalla Digital de la Caneca
+            </h3>
+
+            <div id="screenContent">
+              <div class="text-6xl mb-4">♻️</div>
+              <p class="text-2xl text-green-400 font-bold">Sistema Listo</p>
+              <p class="text-gray-400 mt-2">Acerca un residuo para clasificar</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <!-- Botones de Simulación -->
+        <div class="bg-slate-800/50 backdrop-blur rounded-2xl p-6 border border-blue-500/30">
+          <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            🗑️ Simular Clasificación
+          </h3>
+          <div id="wasteButtons" class="grid grid-cols-2 gap-3"></div>
+        </div>
+
+        <!-- Nivel de Llenado -->
+        <div class="bg-slate-800/50 backdrop-blur rounded-2xl p-6 border border-blue-500/30">
+          <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            📊 Nivel de Llenado
+          </h3>
+          <div id="fillLevels" class="space-y-4"></div>
+        </div>
+
+        <!-- Alertas -->
+        <div class="bg-slate-800/50 backdrop-blur rounded-2xl p-6 border border-blue-500/30">
+          <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            ⚠️ Alertas del Sistema
+          </h3>
+          <div id="alerts" class="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
+            <p class="text-gray-400 text-sm text-center py-4">No hay alertas activas</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historiales -->
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-slate-800/50 backdrop-blur rounded-2xl p-6 border border-blue-500/30">
+        <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          📷 Historial Visión IA
+        </h3>
+        <div id="visionHistory" class="space-y-2 max-h-80 overflow-y-auto scrollbar-thin">
+          <p class="text-gray-400 text-sm text-center py-4">Sin actividad</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/50 backdrop-blur rounded-2xl p-6 border border-green-500/30">
+        <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          ✅ Historial Clasificación
+        </h3>
+        <div id="classificationHistory" class="space-y-2 max-h-80 overflow-y-auto scrollbar-thin">
+          <p class="text-gray-400 text-sm text-center py-4">Sin clasificaciones</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/50 backdrop-blur rounded-2xl p-6 border border-purple-500/30">
+        <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          📊 Historial Monitoreo
+        </h3>
+        <div id="monitoringHistory" class="space-y-2 max-h-80 overflow-y-auto scrollbar-thin">
+          <p class="text-gray-400 text-sm text-center py-4">Sin registros</p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Estadísticas -->
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-green-500/20 backdrop-blur rounded-xl p-4 border border-green-500/50">
+        <div class="text-4xl mb-2">📷</div>
+        <h4 class="text-white font-semibold mb-1">Visión IA</h4>
+        <p class="text-gray-300 text-sm">Identificación automática de residuos</p>
+        <p id="visionCount" class="text-green-400 font-bold mt-2">0 escaneos</p>
+      </div>
+      <div class="bg-blue-500/20 backdrop-blur rounded-xl p-4 border border-blue-500/50">
+        <div class="text-4xl mb-2">✅</div>
+        <h4 class="text-white font-semibold mb-1">Clasificación</h4>
+        <p class="text-gray-300 text-sm">6 compartimientos inteligentes</p>
+        <p id="classificationCount" class="text-blue-400 font-bold mt-2">0 clasificados</p>
+      </div>
+      <div class="bg-yellow-500/20 backdrop-blur rounded-xl p-4 border border-yellow-500/50">
+        <div class="text-4xl mb-2">⚠️</div>
+        <h4 class="text-white font-semibold mb-1">Alertas</h4>
+        <p class="text-gray-300 text-sm">Notificaciones en tiempo real</p>
+        <p id="alertCount" class="text-yellow-400 font-bold mt-2">0 alertas</p>
+      </div>
+      <div class="bg-purple-500/20 backdrop-blur rounded-xl p-4 border border-purple-500/50">
+        <div class="text-4xl mb-2">📊</div>
+        <h4 class="text-white font-semibold mb-1">Monitoreo</h4>
+        <p class="text-gray-300 text-sm">Estadísticas de uso y llenado</p>
+        <p id="monitoringCount" class="text-purple-400 font-bold mt-2">0 registros</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Estado global
+    const state = {
+      rotation: 0,
+      isDragging: false,
+      dragStart: 0,
+      isScanning: false,
+      scanResult: null,
+      lidOpen: false,
+      binStats: { organic: 0, plastic: 0, paper: 0, glass: 0, metal: 0, unknown: 0 },
+      totalProcessed: { organic: 0, plastic: 0, paper: 0, glass: 0, metal: 0, unknown: 0 },
+      alerts: [],
+      visionHistory: [],
+      classificationHistory: [],
+      monitoringHistory: [],
+      alertSound: false,
+      audioContext: null
+    };
+
+    const wasteTypes = [
+      { id: 'organic', name: 'Orgánico', color: '#10b981', icon: '🍎', category: 'organic' },
+      { id: 'plastic', name: 'Plástico', color: '#3b82f6', icon: '🥤', category: 'plastic' },
+      { id: 'paper', name: 'Papel', color: '#f59e0b', icon: '📄', category: 'paper' },
+      { id: 'glass', name: 'Vidrio', color: '#8b5cf6', icon: '🍾', category: 'glass' },
+      { id: 'metal', name: 'Metal', color: '#6b7280', icon: '🥫', category: 'metal' },
+      { id: 'unknown', name: 'No Aprovechables', color: '#ef4444', icon: '❓', category: 'unknown' }
+    ];
+
+    let pieChart, barChart;
+
+    // Inicializar
+    function init() {
+      createWasteButtons();
+      updateFillLevels();
+      drawBin();
+      initCanvas();
+      initCharts();
+    }
+
+    // Canvas 3D
+    function initCanvas() {
+      const canvas = document.getElementById('binCanvas');
+      canvas.addEventListener('mousedown', handleMouseDown);
+      canvas.addEventListener('mousemove', handleMouseMove);
+      canvas.addEventListener('mouseup', handleMouseUp);
+      canvas.addEventListener('mouseleave', handleMouseUp);
+    }
+
+    function handleMouseDown(e) {
+      state.isDragging = true;
+      state.dragStart = e.clientX;
+    }
+
+    function handleMouseMove(e) {
+      if (state.isDragging) {
+        const delta = e.clientX - state.dragStart;
+        state.rotation = (state.rotation + delta * 0.5) % 360;
+        state.dragStart = e.clientX;
+        drawBin();
+        updateRotationInfo();
+      }
+    }
+
+    function handleMouseUp() {
+      state.isDragging = false;
+    }
+
+    function resetRotation() {
+      state.rotation = 0;
+      drawBin();
+      updateRotationInfo();
+    }
+
+    function updateRotationInfo() {
+      document.getElementById('rotationInfo').textContent =
+        `Rotación: ${Math.round(state.rotation)}° | ${state.lidOpen ? '🔓 Tapa Abierta' : '🔒 Tapa Cerrada'}`;
+    }
+
+    function drawBin() {
+      const canvas = document.getElementById('binCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const scale = 1.2;
+
+      ctx.save();
+      ctx.translate(centerX, centerY);
+
+      const rotRad = (state.rotation * Math.PI) / 180;
+      const skewX = Math.sin(rotRad) * 0.3;
+
+      // Sombra
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.beginPath();
+      ctx.ellipse(0, 180, 120 + Math.abs(skewX * 50), 20, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cuerpo de la caneca
+      const gradient = ctx.createLinearGradient(-100, 0, 100, 0);
+      gradient.addColorStop(0, '#1e293b');
+      gradient.addColorStop(0.3, '#334155');
+      gradient.addColorStop(0.7, '#334155');
+      gradient.addColorStop(1, '#1e293b');
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.moveTo(-80 * scale + skewX * 100, -130);
+      ctx.lineTo(-100 * scale + skewX * 200, 170);
+      ctx.lineTo(100 * scale + skewX * 200, 170);
+      ctx.lineTo(80 * scale + skewX * 100, -130);
+      ctx.closePath();
+      ctx.fill();
+
+      // Tapa
+      ctx.save();
+      if (state.lidOpen) {
+        ctx.translate(0, -140);
+        ctx.rotate(-0.5);
+      }
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(-90 * scale, -140, 180 * scale, 20);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(-20, -150, 40, 10);
+      ctx.restore();
+
+      // Pantalla
+      const screenGradient = ctx.createLinearGradient(0, -110, 0, -10);
+      screenGradient.addColorStop(0, '#0f172a');
+      screenGradient.addColorStop(1, '#1e293b');
+      ctx.fillStyle = screenGradient;
+      ctx.fillRect(-70 * scale, -110, 140 * scale, 100);
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-70 * scale, -110, 140 * scale, 100);
+
+      // Icono en pantalla
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (state.isScanning) {
+        ctx.fillStyle = '#3b82f6';
+        ctx.font = 'bold 40px Arial';
+        ctx.fillText('🔍', 0, -50);
+      } else if (state.scanResult) {
+        ctx.fillStyle = state.scanResult.category === 'unknown' ? '#ef4444' : '#10b981';
+        ctx.font = 'bold 36px Arial';
+        ctx.fillText(state.scanResult.icon, 0, -50);
+      } else {
+        ctx.fillStyle = '#10b981';
+        ctx.font = 'bold 50px Arial';
+        ctx.fillText('♻️', 0, -50);
+      }
+
+      // Cámara
+      const cameraGradient = ctx.createRadialGradient(0, 20, 0, 0, 20, 20);
+      cameraGradient.addColorStop(0, '#60a5fa');
+      cameraGradient.addColorStop(1, '#1e40af');
+      ctx.fillStyle = cameraGradient;
+      ctx.beginPath();
+      ctx.arc(0, 20, 15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#3b82f6';
+      ctx.beginPath();
+      ctx.arc(0, 20, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Compartimientos
+      const compartmentY = 140;
+      const compartmentWidth = 30;
+      const colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#6b7280', '#ef4444'];
+      const categories = ['organic', 'plastic', 'paper', 'glass', 'metal', 'unknown'];
+
+      for (let i = 0; i < 6; i++) {
+        const x = -90 + (i * 36);
+        const isFull = state.binStats[categories[i]] >= 100;
+
+        ctx.fillStyle = isFull ? '#dc2626' : colors[i];
+        ctx.fillRect(x + skewX * 150, compartmentY, compartmentWidth, 40);
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + skewX * 150, compartmentY, compartmentWidth, 40);
+
+        const fillHeight = (state.binStats[categories[i]] / 100) * 35;
+        ctx.fillStyle = colors[i];
+        ctx.fillRect(x + 2 + skewX * 150, compartmentY + 40 - fillHeight, compartmentWidth - 4, fillHeight);
+      }
+
+      // LEDs
+      for (let i = 0; i < 6; i++) {
+        const ledX = -75 + (i * 30);
+        const isFull = state.binStats[categories[i]] >= 100;
+        ctx.fillStyle = isFull ? '#dc2626' : (state.scanResult ? '#10b981' : '#3b82f6');
+        ctx.beginPath();
+        ctx.arc(ledX, -120, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    // Botones de residuos
+    function createWasteButtons() {
+      const container = document.getElementById('wasteButtons');
+      container.innerHTML = wasteTypes.map(waste => {
+        const isFull = state.binStats[waste.category] >= 100;
+        return `
+                    <button 
+                        onclick="simulateScan('${waste.id}')"
+                        class="p-4 rounded-xl border transition-all ${isFull ? 'bg-red-500/20 border-red-500 cursor-not-allowed opacity-50' : 'bg-slate-700/50 hover:bg-slate-700 border-slate-600 hover:border-blue-500'}"
+                        ${isFull || state.isScanning ? 'disabled' : ''}>
+                        <div class="text-3xl mb-2">${waste.icon}</div>
+                        <div class="text-sm text-white font-medium">${waste.name}</div>
+                        ${isFull ? '<div class="text-xs text-red-400 mt-1">LLENO</div>' : ''}
+                    </button>
+                `;
+      }).join('');
+    }
+
+    // Simulación
+    function simulateScan(wasteId) {
+      const waste = wasteTypes.find(w => w.id === wasteId);
+      if (!waste) return;
+
+      if (state.binStats[waste.category] >= 100) {
+        playBeep();
+        addAlert('🚨 CONTENEDOR LLENO - No se puede depositar más ' + waste.name, 'error');
+        return;
+      }
+
+      state.isScanning = true;
+      state.lidOpen = true;
+      updateScreen('scanning');
+      addVisionHistory('Escaneando: ' + waste.icon + ' ' + waste.name);
+
+      setTimeout(() => {
+        state.isScanning = false;
+        state.scanResult = waste;
+        updateScreen('result', waste);
+        addVisionHistory('✓ Identificado: ' + waste.icon + ' ' + waste.name);
+
+        setTimeout(() => {
+          const newValue = Math.min(100, state.binStats[waste.category] + 5);
+          state.binStats[waste.category] = newValue;
+          state.totalProcessed[waste.category]++;
+
+          if (newValue >= 100) {
+            playBeep();
+            addAlert('🔴 ALERTA: Compartimiento ' + waste.name + ' LLENO (100%)', 'error');
+          } else if (newValue > 80) {
+            addAlert('🟡 Compartimiento ' + waste.name + ' casi lleno (' + newValue + '%)', 'warning');
+          } else {
+            addAlert('✅ ' + waste.name + ' clasificado correctamente', 'success');
+          }
+
+          addClassificationHistory(waste.icon + ' ' + waste.name + ' → Compartimiento ' + waste.name);
+          addMonitoringHistory('Nivel ' + waste.name + ': ' + newValue + '%');
+
+          state.lidOpen = false;
+          updateFillLevels();
+          createWasteButtons();
+          updateCharts();
+          updateRotationInfo();
+
+          setTimeout(() => {
+            state.scanResult = null;
+            updateScreen('ready');
+          }, 2000);
+        }, 1000);
+      }, 2000);
+    }
+
+    // Actualizar pantalla
+    function updateScreen(mode, waste = null) {
+      const content = document.getElementById('screenContent');
+
+      if (mode === 'scanning') {
+        content.innerHTML = `
+                    <div class="animate-pulse">
+                        <div class="text-6xl mb-4">🔍</div>
+                        <p class="text-2xl text-blue-400 font-bold">Escaneando...</p>
+                        <p class="text-gray-400 mt-2">Analizando residuo con IA</p>
+                    </div>
+                `;
+      } else if (mode === 'result' && waste) {
+        content.innerHTML = `
+                    <div class="animate-fade-in">
+                        <div class="text-6xl mb-4">${waste.icon}</div>
+                        <p class="text-3xl font-bold mb-2" style="color: ${waste.color}">${waste.name}</p>
+                        <p class="text-gray-300">
+                            ${waste.category === 'unknown' ? '❌ No se puede clasificar' : '✓ Depositar en compartimiento ' + waste.name}
+                        </p>
+                    </div>
+                `;
+      } else {
+        content.innerHTML = `
+                    <div class="text-6xl mb-4">♻️</div>
+                    <p class="text-2xl text-green-400 font-bold">Sistema Listo</p>
+                    <p class="text-gray-400 mt-2">Acerca un residuo para clasificar</p>
+                `;
+      }
+
+      drawBin();
+    }
+
+    // Niveles de llenado
+    function updateFillLevels() {
+      const container = document.getElementById('fillLevels');
+      container.innerHTML = Object.entries(state.binStats).map(([key, value]) => {
+        const waste = wasteTypes.find(w => w.category === key);
+        const isFull = value >= 100;
+        return `
+                    <div>
+                        <div class="flex justify-between items-center text-sm mb-1">
+                            <span class="text-gray-300">${waste?.icon} ${waste?.name}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold ${isFull ? 'text-red-400' : 'text-white'}">${value}%</span>
+                                ${value > 0 ? `<button onclick="emptyBin('${key}')" class="p-1 bg-red-500/20 hover:bg-red-500/40 rounded border border-red-500 transition-all" title="Vaciar contenedor">🗑️</button>` : ''}
+                            </div>
+                        </div>
+                        <div class="h-3 bg-slate-700 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500 ${isFull ? 'animate-pulse' : ''}" 
+                                style="width: ${value}%; background-color: ${isFull ? '#dc2626' : waste?.color}"></div>
+                        </div>
+                    </div>
+                `;
+      }).join('');
+    }
+
+    function emptyBin(category) {
+      state.binStats[category] = 0;
+      const waste = wasteTypes.find(w => w.category === category);
+      addAlert('🗑️ Compartimiento ' + waste?.name + ' vaciado completamente', 'success');
+      addMonitoringHistory('🔄 Compartimiento ' + waste?.name + ' vaciado - Nivel: 0%');
+      updateFillLevels();
+      createWasteButtons();
+      updateCharts();
+      drawBin();
+    }
+
+    // Alertas
+    function addAlert(message, type) {
+      const container = document.getElementById('alerts');
+      state.alerts.unshift({ message, type, timestamp: new Date().toLocaleTimeString() });
+
+      const bgColor = type === 'success' ? 'bg-green-500/20 border-green-500/50' :
+        type === 'warning' ? 'bg-yellow-500/20 border-yellow-500/50' :
+          type === 'error' ? 'bg-red-500/20 border-red-500/50' : 'bg-blue-500/20 border-blue-500/50';
+
+      container.innerHTML = state.alerts.slice(0, 10).map(alert => `
+                <div class="${bgColor} p-3 rounded-lg text-sm border">
+                    <p class="text-white font-medium">${alert.message}</p>
+                    <p class="text-gray-400 text-xs mt-1">${alert.timestamp}</p>
+                </div>
+            `).join('') || '<p class="text-gray-400 text-sm text-center py-4">No hay alertas activas</p>';
+
+      document.getElementById('alertCount').textContent = state.alerts.length + ' alertas';
+    }
+
+    function addVisionHistory(message) {
+      const container = document.getElementById('visionHistory');
+      state.visionHistory.unshift({ message, timestamp: new Date().toLocaleTimeString() });
+      container.innerHTML = state.visionHistory.map(item => `
+                <div class="p-2 bg-slate-700/50 rounded text-sm">
+                    <p class="text-white">${item.message}</p>
+                    <p class="text-gray-400 text-xs">${item.timestamp}</p>
+                </div>
+            `).join('') || '<p class="text-gray-400 text-sm text-center py-4">Sin actividad</p>';
+      document.getElementById('visionCount').textContent = state.visionHistory.length + ' escaneos';
+    }
+
+    function addClassificationHistory(message) {
+      const container = document.getElementById('classificationHistory');
+      state.classificationHistory.unshift({ message, timestamp: new Date().toLocaleTimeString() });
+      container.innerHTML = state.classificationHistory.map(item => `
+                <div class="p-2 bg-slate-700/50 rounded text-sm">
+                    <p class="text-white">${item.message}</p>
+                    <p class="text-gray-400 text-xs">${item.timestamp}</p>
+                </div>
+            `).join('') || '<p class="text-gray-400 text-sm text-center py-4">Sin clasificaciones</p>';
+      document.getElementById('classificationCount').textContent = state.classificationHistory.length + ' clasificados';
+    }
+
+    function addMonitoringHistory(message) {
+      const container = document.getElementById('monitoringHistory');
+      state.monitoringHistory.unshift({ message, timestamp: new Date().toLocaleTimeString() });
+      container.innerHTML = state.monitoringHistory.map(item => `
+                <div class="p-2 bg-slate-700/50 rounded text-sm">
+                    <p class="text-white">${item.message}</p>
+                    <p class="text-gray-400 text-xs">${item.timestamp}</p>
+                </div>
+            `).join('') || '<p class="text-gray-400 text-sm text-center py-4">Sin registros</p>';
+      document.getElementById('monitoringCount').textContent = state.monitoringHistory.length + ' registros';
+    }
+
+    // Audio
+    function playBeep() {
+      if (!state.audioContext) {
+        state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const ctx = state.audioContext;
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      oscillator.frequency.value = 800;
+      oscillator.type = 'square';
+      gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.1);
+    }
+
+
+    function updateCharts() {
+      pieChart.data.datasets[0].data = wasteTypes.map(w => state.totalProcessed[w.category]);
+      pieChart.update();
+
+      barChart.data.datasets[0].data = wasteTypes.map(w => state.binStats[w.category]);
+      barChart.data.datasets[0].backgroundColor = wasteTypes.map(w =>
+        state.binStats[w.category] >= 100 ? '#dc2626' : w.color
+      );
+      barChart.update();
+    }
+
+    // Iniciar aplicación
+    window.onload = init;
+  </script>
+</body>
+
+</html>
